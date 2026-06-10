@@ -2,6 +2,7 @@ import {
   HostRoot,
   HostComponent,
   IndeterminateComponent,
+  HostText,
 } from "./ReactWorkTags";
 import { NoFlags } from "./ReactFiberFlags";
 export function FiberNode(tag, pendingProps, key) {
@@ -10,6 +11,7 @@ export function FiberNode(tag, pendingProps, key) {
   this.type = null; // fiber节点所对应的虚拟DOM的类型
   this.stateNode = null;
   this.return = null;
+  this.child = null;
   this.sibling = null;
   this.pendingProps = pendingProps;
   this.memoizedProps = null;
@@ -64,8 +66,6 @@ function createFiberFromTypeAndProps(type, key, pendingProps) {
   let tag = IndeterminateComponent;
   if (typeof type === "string") {
     tag = HostComponent;
-  } else if (typeof type === "function") {
-    tag = LazyComponent;
   }
   return createFiber(tag, pendingProps, key);
 }

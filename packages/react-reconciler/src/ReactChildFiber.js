@@ -80,6 +80,7 @@ function createChildReconciler(shouldTrackSideEffects) {
     if (isArray(newChild)) {
       return reconcileChildrenArray(returnFiber, currentFirstChild, newChild);
     }
+    return null;
   }
   return reconcileChildFibers;
 }
