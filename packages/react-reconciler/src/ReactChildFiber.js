@@ -66,6 +66,7 @@ function createChildReconciler(shouldTrackSideEffects) {
     }
     return newFiber;
   }
+  
   function reconcileChildFibers(returnFiber, currentFirstChild, newChild) {
     if (typeof newChild === "object" && newChild !== null) {
       switch (newChild.$$typeof) {

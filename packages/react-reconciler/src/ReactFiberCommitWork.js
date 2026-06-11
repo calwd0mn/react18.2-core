@@ -1,4 +1,9 @@
-import { HostComponent, HostRoot, HostText } from "./ReactWorkTags";
+import {
+  HostComponent,
+  HostRoot,
+  HostText,
+  FunctionComponent,
+} from "./ReactWorkTags";
 import { MutationMask, Placement } from "./ReactFiberFlags";
 import {
   appendInitialChild,
@@ -112,12 +117,12 @@ function commitPlacement(finishedWork) {
 
 export function commitMutationEffectsOnFiber(finishedWork, root) {
   switch (finishedWork.tag) {
-    case HostComponent: {
-      // 递归执行子节点的副作用
-    }
+    case FunctionComponent:
+    case HostRoot:
+    case HostComponent:
     case HostText: {
       // 递归执行子节点的副作用
-      recursivelyTraverseMutationEffects(finishedWork, root);
+      recursivelyTraverseMutationEffects(root, finishedWork);
       commitReconciliationEffects(finishedWork);
       break;
     }

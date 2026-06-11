@@ -67,7 +67,9 @@ function createFiberFromTypeAndProps(type, key, pendingProps) {
   if (typeof type === "string") {
     tag = HostComponent;
   }
-  return createFiber(tag, pendingProps, key);
+  const fiber = createFiber(tag, pendingProps, key);
+  fiber.type = type;
+  return fiber;
 }
 
 export function createFiberFromText(content) {
