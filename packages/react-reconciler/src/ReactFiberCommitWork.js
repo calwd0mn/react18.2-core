@@ -4,10 +4,11 @@ import {
   HostText,
   FunctionComponent,
 } from "./ReactWorkTags";
-import { MutationMask, Placement } from "./ReactFiberFlags";
+import { MutationMask, Placement, Update } from "./ReactFiberFlags";
 import {
   appendInitialChild,
   insertBefore,
+  commitUpdate,
 } from "react-dom-bindings/src/client/ReactDOMHostConfig";
 
 function recursivelyTraverseMutationEffects(root, rootFiber) {
@@ -116,18 +117,41 @@ function commitPlacement(finishedWork) {
 }
 
 export function commitMutationEffectsOnFiber(finishedWork, root) {
+  const flags = finishedWork.flags;
+  const current = finishedWork.alternate;
   switch (finishedWork.tag) {
     case FunctionComponent:
     case HostRoot:
-    case HostComponent:
     case HostText: {
       // 递归执行子节点的副作用
       recursivelyTraverseMutationEffects(root, finishedWork);
       commitReconciliationEffects(finishedWork);
       break;
     }
-    case HostRoot: {
-      // 递归执行子节点的副作用
+    case HostComponent: {
+      recursivelyTraverseMutationEffects(root, finishedWork);
+      commitReconciliationEffects(finishedWork);
+      if (flags & Update) {
+        const instance = finishedWork.stateNode;
+        if (instance !== null) {
+          const newProps = finishedWork.memoizedProps;
+          const oldProps = current.memoizedProps;
+          const type = finishedWork.type;
+          const updatePayload = finishedWork.updateQueue;
+          finishedWork.updateQueue = null;
+          if (updatePayload) {
+            commitUpdate(
+              instance,
+              updatePayload,
+              type,
+              oldProps,
+              newProps,
+              finishedWork,
+            );
+          }
+        }
+      }
+      break;
     }
   }
 }

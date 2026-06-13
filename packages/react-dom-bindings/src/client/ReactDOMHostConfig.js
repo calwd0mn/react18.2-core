@@ -1,5 +1,9 @@
-import { setInitialProperties } from "./ReactDOMComponent";
-import {precacheFiberNode,updateFiberProps} from "./ReactDOMComponentTree";
+import {
+  setInitialProperties,
+  diffProperties,
+  updateProperties,
+} from "./ReactDOMComponent";
+import { precacheFiberNode, updateFiberProps } from "./ReactDOMComponentTree";
 
 export function shouldSetTextContent(type, props) {
   return (
@@ -28,4 +32,27 @@ export function finalizeInitialChildren(domElement, type, props) {
 
 export function insertBefore(parentInstance, child, beforeChild) {
   parentInstance.insertBefore(child, beforeChild);
+}
+
+/**
+ * 对比原生 DOM 节点的新旧 props，生成 commit 阶段需要执行的属性更新载荷。
+ * @param {Element} domElement 需要更新的真实 DOM 节点
+ * @param {string} type DOM 节点类型
+ * @param {Props} oldProps 老 props
+ * @param {Props} newProps 新 props
+ * @returns {UpdatePayload | null} updatePayload 属性差异更新载荷，没有差异时返回 null。
+ */
+export function prepareUpdate(domElement, type, oldProps, newProps) {
+  return diffProperties(domElement, type, oldProps, newProps);
+}
+
+export function commitUpdate(
+  domElement,
+  updatePayload,
+  type,
+  oldProps,
+  newProps,
+) {
+  updateProperties(domElement, updatePayload, type, oldProps, newProps);
+  updateFiberProps(domElement, newProps);
 }

@@ -21,6 +21,7 @@ export function FiberNode(tag, pendingProps, key) {
   this.subtreeFlags = NoFlags;
   this.alternate = null;
   this.index = 0;
+  this.deletions = null;// 存放需要删除的子节点
 }
 
 export function createFiber(tag, pendingProps, key) {
@@ -31,7 +32,12 @@ export function createHostRootFiber() {
   return createFiber(HostRoot, null, null);
 }
 
-// 没有就创建，有就复用，复用时需要重置一些属性，比如说flags，pendingProps等等
+/**
+ * 基于 current 创建或复用 workInProgress fiber，并同步必要属性。
+ * @param {Fiber} current - 当前 fiber
+ * @param {ReactElement["props"] | null} pendingProps - 新 fiber 的待处理 props
+ * @returns {Fiber} workInProgress - 创建或复用的 workInProgress fiber
+ */
 export function createWorkInProgress(current, pendingProps) {
   let workInProgress = current.alternate;
   if (workInProgress === null) {

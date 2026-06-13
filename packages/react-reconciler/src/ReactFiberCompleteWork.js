@@ -1,10 +1,16 @@
-import { HostComponent, HostText, HostRoot } from "./ReactWorkTags";
-import { NoFlags } from "./ReactFiberFlags";
+import {
+  HostComponent,
+  HostText,
+  HostRoot,
+  FunctionComponent,
+} from "./ReactWorkTags";
+import { NoFlags, Update } from "./ReactFiberFlags";
 import {
   createInstance,
   appendInitialChild,
   finalizeInitialChildren,
   createTextInstance,
+  prepareUpdate,
 } from "react-dom-bindings/src/client/ReactDOMHostConfig";
 
 // 该函数只负责有真实DOM的节点的挂载，其他的比如说函数组件、类组件等等是没有真实DOM的不归他管
@@ -35,6 +41,23 @@ function appendAllChildren(parent, workInProgress) {
   }
 }
 
+function markUpdate(workInProgress) {
+  workInProgress.flags |= Update;
+}
+
+function updateHostComponent(current, workInProgress, type, newProps) {
+  const oldProps = current.memoizedProps;
+  // 复用老fiber得到的stateNode
+  const instance = workInProgress.stateNode;
+  // 对比新旧props，生成属性更新payload
+  const updatePayload = prepareUpdate(instance, type, oldProps, newProps);
+  workInProgress.updateQueue = updatePayload;
+  // 如果updatePayload不为null，说明有属性更新，需要把这个fiber的flags标记为Update
+  if (updatePayload) {
+    markUpdate(workInProgress);
+  }
+}
+
 export function completeWork(current, workInProgress) {
   const newProps = workInProgress.pendingProps;
   switch (workInProgress.tag) {
@@ -43,15 +66,23 @@ export function completeWork(current, workInProgress) {
       break;
     case HostComponent:
       const { type } = workInProgress;
-      const instance = createInstance(type, newProps, workInProgress);
-      appendAllChildren(instance, workInProgress);
-      workInProgress.stateNode = instance;
-      finalizeInitialChildren(instance, type, newProps); // 挂属性
-      bubbleProperties(workInProgress);
+      if (current !== null && workInProgress.stateNode !== null) {
+        // update
+        updateHostComponent(current, workInProgress, type, newProps);
+      } else {
+        const instance = createInstance(type, newProps, workInProgress);
+        appendAllChildren(instance, workInProgress);
+        workInProgress.stateNode = instance;
+        finalizeInitialChildren(instance, type, newProps); // 挂属性
+        bubbleProperties(workInProgress);
+      }
       break;
     case HostText:
       const newText = newProps;
       workInProgress.stateNode = createTextInstance(newText);
+      bubbleProperties(workInProgress);
+      break;
+    case FunctionComponent:
       bubbleProperties(workInProgress);
       break;
     default:

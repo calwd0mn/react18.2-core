@@ -8,7 +8,7 @@ import {
 import { mountChildFibers, reconcileChildFibers } from "./ReactChildFiber";
 import { processUpdateQueue } from "./ReactFiberClassUpdateQueue";
 import { shouldSetTextContent } from "react-dom-bindings/src/client/ReactDOMHostConfig";
-import { renderWithHooks } from "./ReactFiberHooks";
+import { renderWithHooks } from "./ReactFiberHooks.js";
 
 function reconcileChildren(current, workInProgress, nextChildren) {
   if (current === null) {
@@ -33,6 +33,13 @@ function updateHostRoot(current, workInProgress) {
   return workInProgress.child;
 }
 
+/**
+ * 挂载尚未确定类型的组件，本实现中直接按函数组件处理。
+ * @param {Fiber | null} current 老的函数组件fiber
+ * @param {Fiber} workInProgress 正在构建的函数组件fiber
+ * @param {ComponentType} Component 函数组件
+ * @returns {Fiber | null} child 函数组件渲染结果对应的第一个子fiber
+ */
 function mountIndeterminateComponent(current, workInProgress, Component) {
   const props = workInProgress.pendingProps;
   const value = renderWithHooks(current, workInProgress, Component, props);
@@ -55,6 +62,12 @@ function updateHostComponent(current, workInProgress) {
   return workInProgress.child;
 }
 
+function updateFunctionComponent(current, workInProgress, Component, props) {
+  const nextChildren = renderWithHooks(current, workInProgress, Component, props);
+  reconcileChildren(current, workInProgress, nextChildren);
+  return workInProgress.child;
+}
+
 export function beginWork(current, workInProgress) {
   switch (workInProgress.tag) {
     case IndeterminateComponent:
@@ -67,6 +80,11 @@ export function beginWork(current, workInProgress) {
       return updateHostRoot(current, workInProgress);
     case HostComponent:
       return updateHostComponent(current, workInProgress);
+    case FunctionComponent:{
+      const Component = workInProgress.type;
+      const props = workInProgress.pendingProps;
+      return updateFunctionComponent(current, workInProgress, Component, props);
+    }
     case HostText:
       return null;
     default:

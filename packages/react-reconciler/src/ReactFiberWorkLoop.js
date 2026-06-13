@@ -5,6 +5,7 @@ import { completeWork } from "./ReactFiberCompleteWork.js";
 import { MutationMask } from "./ReactFiberFlags";
 import { commitMutationEffectsOnFiber } from "./ReactFiberCommitWork.js";
 import { NoFlags } from "./ReactFiberFlags";
+import { finishedQueueingConcurrentUpdates } from "./ReactFiberConcurrentUpdates";
 
 let workInProgress = null;
 
@@ -46,9 +47,14 @@ function commitRoot(root) {
   root.current = finishedWork;
 }
 
+/**
+ * 为当前 FiberRootNode 准备一棵新的 workInProgress fiber 树。
+ * @param {FiberRootNode} root React 应用根对象，root.current 才是 HostRoot fiber。
+ */
 function prepareFreshStack(root) {
   // 新建fiber树，并且把它赋值给workInProgress
   workInProgress = createWorkInProgress(root.current, null);
+  finishedQueueingConcurrentUpdates();
 }
 
 // 同步循环阶段
