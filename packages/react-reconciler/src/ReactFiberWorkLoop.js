@@ -6,6 +6,7 @@ import {
   commitMutationEffectsOnFiber,
   commitPassiveUnmountEffects,
   commitPassiveMountEffects,
+  commitLayoutEffects,
 } from "./ReactFiberCommitWork.js";
 import { NoFlags, MutationMask, Passive } from "./ReactFiberFlags";
 import { finishedQueueingConcurrentUpdates } from "./ReactFiberConcurrentUpdates";
@@ -74,6 +75,7 @@ function commitRoot(root) {
     rootWithPendingPassiveEffects = root;
   }
   root.current = finishedWork;
+  commitLayoutEffects(finishedWork, root);
 }
 
 function flushPassiveEffect() {
