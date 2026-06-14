@@ -2,12 +2,21 @@ import { scheduleCallback } from "scheduler";
 import { createWorkInProgress } from "./ReactFiber";
 import { beginWork } from "./ReactFiberBeginWork";
 import { completeWork } from "./ReactFiberCompleteWork.js";
-import { MutationMask } from "./ReactFiberFlags";
-import { commitMutationEffectsOnFiber } from "./ReactFiberCommitWork.js";
-import { NoFlags } from "./ReactFiberFlags";
+import {
+  commitMutationEffectsOnFiber,
+  commitPassiveUnmountEffects,
+  commitPassiveMountEffects,
+} from "./ReactFiberCommitWork.js";
+import { NoFlags, MutationMask, Passive } from "./ReactFiberFlags";
 import { finishedQueueingConcurrentUpdates } from "./ReactFiberConcurrentUpdates";
 
 let workInProgress = null;
+
+// 全局变量
+// 当前 commit 是否已经安排过 passive effect 的异步 flush 任务
+let rootDoesHavePassiveEffect = false;
+// 存储还有待执行 passive effect 的 FiberRoot，供异步 flushPassiveEffect 使用
+let rootWithPendingPassiveEffects = null;
 
 export function scheduleUpdateOnFiber(root) {
   ensureRootIsScheduled(root);
@@ -18,6 +27,10 @@ function ensureRootIsScheduled(root) {
   scheduleCallback(performanceConcurrentWorkOnRoot.bind(null, root));
 }
 
+/**
+ *
+ * @param {FiberRoot} root
+ */
 function performanceConcurrentWorkOnRoot(root) {
   // root = FiberRoot
   // 新建fiber树
@@ -37,6 +50,18 @@ function commitRoot(root) {
   // root 为 FiberRoot
   // finishedWork为FiberRoot.current.alternate，也就是新fiber树的根节点，代表新fiber树已经处理完了
   const { finishedWork } = root;
+
+  if (
+    (finishedWork.subtreeFlags & Passive) !== NoFlags ||
+    (finishedWork.flags & Passive) !== NoFlags
+  ) {
+    // 如果有useEffect的副作用，先执行useEffect的副作用
+    if (!rootDoesHavePassiveEffect) {
+      rootDoesHavePassiveEffect = true;
+      scheduleCallback(flushPassiveEffect);
+    }
+  }
+
   const subtreeHasEffect =
     (finishedWork.subtreeFlags & MutationMask) !== NoFlags;
   const rootHasEffect = (finishedWork.flags & MutationMask) !== NoFlags;
@@ -44,7 +69,19 @@ function commitRoot(root) {
     // 递归执行副作用
     commitMutationEffectsOnFiber(finishedWork, root);
   }
+  if (rootDoesHavePassiveEffect) {
+    rootDoesHavePassiveEffect = false;
+    rootWithPendingPassiveEffects = root;
+  }
   root.current = finishedWork;
+}
+
+function flushPassiveEffect() {
+  if (rootWithPendingPassiveEffects !== null) {
+    const root = rootWithPendingPassiveEffects;
+    commitPassiveUnmountEffects(root, root.current);
+    commitPassiveMountEffects(root, root.current);
+  }
 }
 
 /**
