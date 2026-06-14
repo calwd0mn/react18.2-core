@@ -5,7 +5,7 @@ import path from "path";
 export default defineConfig({
   resolve: {
     alias: {
-      "react/jsx-dev-runtime": path.resolve("packages/react/src/jsx-dev-runtime.js"),
+      "react/jsx-dev-runtime": path.resolve("packages/react/jsx-dev-runtime.js"),
       react: path.resolve("packages/react"),
       "react-dom": path.resolve("packages/react-dom"),
       "react-dom-bindings": path.resolve("packages/react-dom-bindings"),
