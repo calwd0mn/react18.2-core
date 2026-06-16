@@ -5,6 +5,7 @@ import {
   HostText,
 } from "./ReactWorkTags";
 import { NoFlags } from "./ReactFiberFlags";
+import { NoLanes } from "./ReactFiberLane";
 export function FiberNode(tag, pendingProps, key) {
   this.tag = tag; // fiber节点的类型
   this.key = key;
@@ -21,7 +22,8 @@ export function FiberNode(tag, pendingProps, key) {
   this.subtreeFlags = NoFlags;
   this.alternate = null;
   this.index = 0;
-  this.deletions = null;// 存放需要删除的子节点
+  this.lanes = NoLanes;
+  this.deletions = null; // 存放需要删除的子节点
 }
 
 export function createFiber(tag, pendingProps, key) {

@@ -1,3 +1,4 @@
+import { mergeLanes } from "./ReactFiberLane";
 import { HostRoot } from "./ReactWorkTags";
 
 const concurrentQueues = [];
@@ -35,15 +36,25 @@ export function finishedQueueingConcurrentUpdates() {
   }
 }
 
-function enqueueUpdate(fiber, queue, update) {
+function enqueueUpdate(fiber, queue, update, lane) {
   concurrentQueues[concurrentQueuesIndex++] = fiber;
   concurrentQueues[concurrentQueuesIndex++] = queue;
   concurrentQueues[concurrentQueuesIndex++] = update;
+  fiber.lanes = mergeLanes(fiber.lanes, lane);
+  const alternate = fiber.alternate;
+  if (alternate !== null) {
+    alternate.lanes = mergeLanes(alternate.lanes, lane);
+  }
 }
 
-export function enqueueConcurrentHookUpdate(fiber, queue, update) {
+export function enqueueConcurrentClassUpdate(fiber, queue, update, lane) {
+  enqueueUpdate(fiber, queue, update, lane);
+  return getRootForUpdateFiber(fiber);
+}
+
+export function enqueueConcurrentHookUpdate(fiber, queue, update, lane) {
   // Implementation for enqueuing concurrent hook updates
-  enqueueUpdate(fiber, queue, update);
+  enqueueUpdate(fiber, queue, update, lane);
   return getRootForUpdateFiber(fiber);
 }
 
