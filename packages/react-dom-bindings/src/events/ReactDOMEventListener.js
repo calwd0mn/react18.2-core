@@ -1,6 +1,11 @@
 import getEventTarget from "./getEventTarget.js";
 import { getClosestInstanceFromNode } from "../client/ReactDOMComponentTree";
 import { dispatchEventForPluginEventSystem } from "./DOMPluginEventSystem";
+import {
+  ContinuousEventPriority,
+  DefaultEventPriority,
+  DiscreteEventPriority,
+} from "react-reconciler/src/ReactEventPriorities.js";
 
 // wrapper 包装函数,在调用这个函数时,会自动传入这些参数
 export function createEventListenerWrapperWithPriority(
@@ -38,4 +43,15 @@ function dispatchEvent(domEventName, eventSystemFlags, container, nativeEvent) {
     targetInst,
     container,
   );
+}
+
+export function getEventPriority(domEventName) {
+  switch (domEventName) {
+    case "click":
+      return DiscreteEventPriority;
+    case "drag":
+      return ContinuousEventPriority;
+    default:
+      return DefaultEventPriority;
+  }
 }
