@@ -24,8 +24,8 @@ function reconcileChildren(current, workInProgress, nextChildren) {
   }
 }
 
-function updateHostRoot(current, workInProgress) {
-  processUpdateQueue(workInProgress);
+function updateHostRoot(current, workInProgress, renderLanes) {
+  processUpdateQueue(workInProgress, null, renderLanes);
   const nextState = workInProgress.memoizedState;
   const nextChildren = nextState.element;
   reconcileChildren(current, workInProgress, nextChildren);
@@ -40,9 +40,20 @@ function updateHostRoot(current, workInProgress) {
  * @param {ComponentType} Component 函数组件
  * @returns {Fiber | null} child 函数组件渲染结果对应的第一个子fiber
  */
-function mountIndeterminateComponent(current, workInProgress, Component) {
+function mountIndeterminateComponent(
+  current,
+  workInProgress,
+  Component,
+  renderLanes,
+) {
   const props = workInProgress.pendingProps;
-  const value = renderWithHooks(current, workInProgress, Component, props);
+  const value = renderWithHooks(
+    current,
+    workInProgress,
+    Component,
+    props,
+    renderLanes,
+  );
   // 此处实际上会进行判断(class/function),但是我们这里省略了，直接当做函数组件处理
   workInProgress.tag = FunctionComponent;
   reconcileChildren(current, workInProgress, value);
@@ -62,28 +73,47 @@ function updateHostComponent(current, workInProgress) {
   return workInProgress.child;
 }
 
-function updateFunctionComponent(current, workInProgress, Component, props) {
-  const nextChildren = renderWithHooks(current, workInProgress, Component, props);
+function updateFunctionComponent(
+  current,
+  workInProgress,
+  Component,
+  props,
+  renderLanes,
+) {
+  const nextChildren = renderWithHooks(
+    current,
+    workInProgress,
+    Component,
+    props,
+    renderLanes,
+  );
   reconcileChildren(current, workInProgress, nextChildren);
   return workInProgress.child;
 }
 
-export function beginWork(current, workInProgress) {
+export function beginWork(current, workInProgress, renderLanes) {
   switch (workInProgress.tag) {
     case IndeterminateComponent:
       return mountIndeterminateComponent(
         current,
         workInProgress,
         workInProgress.type,
+        renderLanes,
       );
     case HostRoot:
-      return updateHostRoot(current, workInProgress);
+      return updateHostRoot(current, workInProgress, renderLanes);
     case HostComponent:
       return updateHostComponent(current, workInProgress);
     case FunctionComponent:{
       const Component = workInProgress.type;
       const props = workInProgress.pendingProps;
-      return updateFunctionComponent(current, workInProgress, Component, props);
+      return updateFunctionComponent(
+        current,
+        workInProgress,
+        Component,
+        props,
+        renderLanes,
+      );
     }
     case HostText:
       return null;
