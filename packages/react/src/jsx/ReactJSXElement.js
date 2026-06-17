@@ -32,7 +32,7 @@ export function jsxDev(type, config, maybeKey) {
   let key = null;
   let ref = null;
   if (typeof maybeKey !== "undefined") {
-    key = maybeKey;
+    key = "" + maybeKey;
   }
   // config.key 优先级别高于 maybeKey
   if (hasValidKey(config)) {
@@ -50,10 +50,5 @@ export function jsxDev(type, config, maybeKey) {
       props[propName] = config[propName];
     }
   }
-  return ReactElement(
-    type,
-    key,
-    ref,
-    props,
-  );
+  return ReactElement(type, key, ref, props);
 }
