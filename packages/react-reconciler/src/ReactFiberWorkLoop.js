@@ -13,7 +13,6 @@ import {
   ContinuousEventPriority,
   DefaultEventPriority,
   DiscreteEventPriority,
-  getCurrentEventPriority,
   getCurrentUpdatePriority,
   IdleEventPriority,
   lanesToEventPriority,
@@ -269,6 +268,5 @@ export function requestUpdateLane() {
   if (updateLane !== NoLane) {
     return updateLane;
   }
-  const eventLane = getCurrentEventPriority();
-  return eventLane !== NoLane ? eventLane : DefaultLane;
+  return DefaultLane;
 }

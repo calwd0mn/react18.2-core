@@ -5,6 +5,8 @@ import {
   ContinuousEventPriority,
   DefaultEventPriority,
   DiscreteEventPriority,
+  getCurrentUpdatePriority,
+  setCurrentUpdatePriority,
 } from "react-reconciler/src/ReactEventPriorities.js";
 
 // wrapper 包装函数,在调用这个函数时,会自动传入这些参数
@@ -13,7 +15,18 @@ export function createEventListenerWrapperWithPriority(
   domEventName,
   eventSystemFlags,
 ) {
-  const listenerWrapper = dispatchDiscreteEvent;
+  const eventPriority = getEventPriority(domEventName);
+  let listenerWrapper;
+  switch (eventPriority) {
+    case DiscreteEventPriority:
+      listenerWrapper = dispatchDiscreteEvent;
+      break;
+    case ContinuousEventPriority:
+      listenerWrapper = dispatchContinuousEvent;
+      break;
+    default:
+      listenerWrapper = dispatchEvent;
+  }
   // 将来调用这个函数时,自带这些信息
   return listenerWrapper.bind(
     null,
@@ -30,7 +43,28 @@ function dispatchDiscreteEvent(
   container,
   nativeEvent,
 ) {
-  dispatchEvent(domEventName, eventSystemFlags, container, nativeEvent);
+  const previousPriority = getCurrentUpdatePriority();
+  try {
+    setCurrentUpdatePriority(DiscreteEventPriority);
+    dispatchEvent(domEventName, eventSystemFlags, container, nativeEvent);
+  } finally {
+    setCurrentUpdatePriority(previousPriority);
+  }
+}
+
+function dispatchContinuousEvent(
+  domEventName,
+  eventSystemFlags,
+  container,
+  nativeEvent,
+) {
+  const previousPriority = getCurrentUpdatePriority();
+  try {
+    setCurrentUpdatePriority(ContinuousEventPriority);
+    dispatchEvent(domEventName, eventSystemFlags, container, nativeEvent);
+  } finally {
+    setCurrentUpdatePriority(previousPriority);
+  }
 }
 
 function dispatchEvent(domEventName, eventSystemFlags, container, nativeEvent) {

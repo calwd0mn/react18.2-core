@@ -1,4 +1,3 @@
-import { getEventPriority } from "react-dom-bindings/src/events/ReactDOMEventListener";
 import {
   SyncLane,
   InputContinuousLane,
@@ -18,18 +17,10 @@ export const DefaultEventPriority = DefaultLane;
 /** 空闲事件优先级,与IdleLane相关联 */
 export const IdleEventPriority = IdleLane;
 
-let currentUpdatePriority = NoLane;
+let currentUpdatePriority = NoLane; // 当前更新优先级,初始值为 NoLane,表示没有优先级
 
 export function getCurrentUpdatePriority() {
   return currentUpdatePriority;
-}
-
-export function getCurrentEventPriority() {
-  const currentEvent = window.event;
-  if (currentEvent === undefined) {
-    return NoLane;
-  }
-  return getEventPriority(currentEvent);
 }
 
 export function setCurrentUpdatePriority(newPriority) {

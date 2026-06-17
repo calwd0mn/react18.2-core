@@ -17,5 +17,7 @@ export function updateContainer(element, container) {
   const update = createUpdate(lane);
   update.payload = { element };
   const root = enqueueUpdate(current, update, lane);
-  scheduleUpdateOnFiber(root, current, lane);
+  if (root !== null) {
+    scheduleUpdateOnFiber(root, current, lane);
+  }
 }
