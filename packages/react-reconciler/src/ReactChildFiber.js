@@ -134,6 +134,15 @@ function createChildReconciler(shouldTrackSideEffects) {
 
   function updateSlot(returnFiber, oldFiber, newChild) {
     const key = oldFiber !== null ? oldFiber.key : null;
+    if (
+      (typeof newChild === "string" && newChild !== "") ||
+      typeof newChild === "number"
+    ) {
+      if (key !== null) {
+        return null;
+      }
+      return updateTextNode(returnFiber, oldFiber, "" + newChild);
+    }
     if (newChild !== null && typeof newChild === "object") {
       switch (newChild.$$typeof) {
         case REACT_ELEMENT_TYPE:
@@ -173,7 +182,10 @@ function createChildReconciler(shouldTrackSideEffects) {
   }
 
   function updateFromMap(existingChildren, returnFiber, newIndex, newChild) {
-    if (typeof newChild === "string" && newChild !== "") {
+    if (
+      (typeof newChild === "string" && newChild !== "") ||
+      typeof newChild === "number"
+    ) {
       const matchedFiber = existingChildren.get(newIndex) || null;
       return updateTextNode(returnFiber, matchedFiber, newChild + "");
     }

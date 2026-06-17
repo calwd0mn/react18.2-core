@@ -10,6 +10,7 @@ import {
   Update,
   Passive,
   LayoutMask,
+  ChildDeletion,
 } from "./ReactFiberFlags";
 import {
   HasEffect as HookHasEffect,
@@ -20,6 +21,8 @@ import {
   appendInitialChild,
   insertBefore,
   commitUpdate,
+  removeChild,
+  commitTextUpdate,
 } from "react-dom-bindings/src/client/ReactDOMHostConfig";
 
 function recursivelyTraverseMutationEffects(root, rootFiber) {
@@ -114,7 +117,7 @@ function commitPlacement(finishedWork) {
   const parentFiber = getHostParentFiber(finishedWork);
   switch (parentFiber.tag) {
     case HostComponent: {
-      const parent = parentFiber.stateNode.containerInfo;
+      const parent = parentFiber.stateNode;
       const before = getHostSibling(finishedWork);
       insertOrAppendPlacementNode(finishedWork, before, parent);
       break;
@@ -127,9 +130,67 @@ function commitPlacement(finishedWork) {
   }
 }
 
+function commitDeletionEffects(root, deletedFiber) {
+  const parentFiber = getHostParentFiber(deletedFiber);
+  if (parentFiber === null) {
+    return;
+  }
+  const parent =
+    parentFiber.tag === HostRoot
+      ? parentFiber.stateNode.containerInfo
+      : parentFiber.stateNode;
+  commitDeletionEffectsOnFiber(root, deletedFiber, parent);
+  deletedFiber.return = null;
+}
+
+function commitDeletionEffectsOnFiber(root, deletedFiber, hostParent) {
+  switch (deletedFiber.tag) {
+    case HostComponent:
+      recursivelyUnmountDeletionEffects(root, deletedFiber);
+      removeChild(hostParent, deletedFiber.stateNode);
+      return;
+    case HostText:
+      removeChild(hostParent, deletedFiber.stateNode);
+      return;
+    case FunctionComponent:
+      commitPassiveUnmountOnFiber(root, deletedFiber);
+      break;
+  }
+  let child = deletedFiber.child;
+  while (child !== null) {
+    commitDeletionEffectsOnFiber(root, child, hostParent);
+    child = child.sibling;
+  }
+}
+
+function recursivelyUnmountDeletionEffects(root, deletedFiber) {
+  let child = deletedFiber.child;
+  while (child !== null) {
+    if (child.tag === FunctionComponent) {
+      commitPassiveUnmountOnFiber(root, child);
+    } else {
+      recursivelyUnmountDeletionEffects(root, child);
+    }
+    child = child.sibling;
+  }
+}
+
+function commitChildDeletionEffects(root, finishedWork) {
+  const deletions = finishedWork.deletions;
+  if (deletions !== null) {
+    for (let i = 0; i < deletions.length; i++) {
+      commitDeletionEffects(root, deletions[i]);
+    }
+    finishedWork.deletions = null;
+  }
+}
+
 export function commitMutationEffectsOnFiber(finishedWork, root) {
   const flags = finishedWork.flags;
   const current = finishedWork.alternate;
+  if (flags & ChildDeletion) {
+    commitChildDeletionEffects(root, finishedWork);
+  }
   switch (finishedWork.tag) {
     case FunctionComponent:
     case HostRoot:
@@ -137,6 +198,12 @@ export function commitMutationEffectsOnFiber(finishedWork, root) {
       // 递归执行子节点的副作用
       recursivelyTraverseMutationEffects(root, finishedWork);
       commitReconciliationEffects(finishedWork);
+      if (finishedWork.tag === HostText && flags & Update) {
+        const textInstance = finishedWork.stateNode;
+        const newText = finishedWork.memoizedProps;
+        const oldText = current !== null ? current.memoizedProps : newText;
+        commitTextUpdate(textInstance, oldText, newText);
+      }
       break;
     }
     case HostComponent: {

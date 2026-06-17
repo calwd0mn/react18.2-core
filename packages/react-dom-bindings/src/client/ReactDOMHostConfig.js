@@ -34,6 +34,14 @@ export function insertBefore(parentInstance, child, beforeChild) {
   parentInstance.insertBefore(child, beforeChild);
 }
 
+export function removeChild(parentInstance, child) {
+  parentInstance.removeChild(child);
+}
+
+export function commitTextUpdate(textInstance, oldText, newText) {
+  textInstance.nodeValue = newText;
+}
+
 /**
  * 对比原生 DOM 节点的新旧 props，生成 commit 阶段需要执行的属性更新载荷。
  * @param {Element} domElement 需要更新的真实 DOM 节点

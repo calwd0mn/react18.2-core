@@ -58,6 +58,14 @@ function updateHostComponent(current, workInProgress, type, newProps) {
   }
 }
 
+function updateHostText(current, workInProgress, newText) {
+  const oldText = current.memoizedProps;
+  workInProgress.stateNode = current.stateNode;
+  if (oldText !== newText) {
+    markUpdate(workInProgress);
+  }
+}
+
 export function completeWork(current, workInProgress) {
   const newProps = workInProgress.pendingProps;
   switch (workInProgress.tag) {
@@ -69,6 +77,7 @@ export function completeWork(current, workInProgress) {
       if (current !== null && workInProgress.stateNode !== null) {
         // update
         updateHostComponent(current, workInProgress, type, newProps);
+        bubbleProperties(workInProgress);
       } else {
         const instance = createInstance(type, newProps, workInProgress);
         appendAllChildren(instance, workInProgress);
@@ -79,7 +88,11 @@ export function completeWork(current, workInProgress) {
       break;
     case HostText:
       const newText = newProps;
-      workInProgress.stateNode = createTextInstance(newText);
+      if (current !== null && workInProgress.stateNode !== null) {
+        updateHostText(current, workInProgress, newText);
+      } else {
+        workInProgress.stateNode = createTextInstance(newText);
+      }
       bubbleProperties(workInProgress);
       break;
     case FunctionComponent:
