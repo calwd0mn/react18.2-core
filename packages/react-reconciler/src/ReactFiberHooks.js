@@ -381,6 +381,7 @@ export function renderWithHooks(
 ) {
   currentlyRenderingFiber = workInProgress;
   currentlyRenderingRenderLanes = renderLanes;
+  workInProgress.lanes = NoLanes;
   // 对Effet的处理
   workInProgress.updateQueue = null;
   ReactCurrentDispatcher.current = HooksDispatcherOnMount;
