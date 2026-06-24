@@ -118,20 +118,28 @@ function createChildReconciler(shouldTrackSideEffects) {
     return null;
   }
 
+  // 对比OldFiber和newVNode的type
   function updateElement(returnFiber, current, element) {
     const elementType = element.type;
     if (current !== null) {
+      // type 相同直接复用
       if (current.type === elementType) {
         const existing = useFiber(current, element.props);
         existing.return = returnFiber;
         return existing;
       }
     }
+    // 否则新建
     const created = createFiberFromElement(element);
     created.return = returnFiber;
     return created;
   }
 
+  /* 
+  尝试用当前位置的 oldFiber 来匹配并更新当前 newChild
+  其中Slot的语义是 新 children 数组 和老 fiber 链表 在当前位置上的对应节点
+  复用失败return null
+   */
   function updateSlot(returnFiber, oldFiber, newChild) {
     const key = oldFiber !== null ? oldFiber.key : null;
     if (
@@ -203,28 +211,55 @@ function createChildReconciler(shouldTrackSideEffects) {
     }
     return null;
   }
+
   function reconcileChildrenArray(returnFiber, currentFirstChild, newChildren) {
     let resultingFirstChild = null;
     let previousNewFiber = null;
     let newIdx = 0;
     let oldFiber = currentFirstChild;
     let nextOldFiber = null;
-    let lastPlacedIndex = 0;
+    let lastPlacedIndex = 0; //当前进度下 位置可以不移动&&可复用 的 最后一个 Fiber节点的old index
+
     // 方案一：按序比较,key不同立即终止
     for (; oldFiber !== null && newIdx < newChildren.length; newIdx++) {
-      nextOldFiber = oldFiber.sibling;
-      // 尝试复用
+      // 防御机制
+      /* 
+      比如上一轮中存在条件渲染{condition&&<X/>}导致的<div>{null}{null}<A/></div> => <A/>.index = 2
+      下一轮为<div><B/><A/></div>它对应的,经过该条件判断后知道,上一轮该位置没有Fiber--null/undefined
+      不要把这个oldFiber消耗掉,留给index === newIdx的时候比
+      将下一个节点保存，标记本轮没有可复用节点，直接新建
+       */
+      if (oldFiber.index > newIdx) {
+        nextOldFiber = oldFiber; // 保存nextOldFiber
+        oldFiber = null; // 标记本轮没有可复用OldFiber
+      } else {
+        nextOldFiber = oldFiber.sibling;
+      }
+
+      // 尝试复用(失败return null)
       const newFiber = updateSlot(returnFiber, oldFiber, newChildren[newIdx]);
       if (newFiber === null) {
         break;
       }
+
+      // 和上面的防御机制配套
+      // 若还是没能创建新fiber,补回来进入下面的逻辑
+      if (newFiber === null) {
+        if (oldFiber === null) {
+          oldFiber = nextOldFiber;
+        }
+        break;
+      }
+
       if (shouldTrackSideEffects) {
         // 说明oldFiber没有被复用，需要删除
-        // newFiber.alternate===null说明没有复用成功，说明oldFiber需要被删除,也就是在useFiber中没有找到可以复用的fiber节点
+        // newFiber.alternate===null说明没有复用成功,这个节点是在updateElement中新建的
+        // 说明oldFiber需要被删除,也就是在useFiber中没有找到可以复用的fiber节点
         if (oldFiber && newFiber.alternate === null) {
           deleteChild(returnFiber, oldFiber);
         }
       }
+      // 判断是否需要移动
       lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx);
       if (previousNewFiber === null) {
         resultingFirstChild = newFiber;
@@ -257,6 +292,7 @@ function createChildReconciler(shouldTrackSideEffects) {
     // 方案三：如果能达到这里，说明第一轮比较后老节点还有剩余，没有经过比较，且新fiber还没创建完
     const existingChildren = mapRemainingChildren(returnFiber, oldFiber);
     for (; newIdx < newChildren.length; newIdx++) {
+      // 尝试在map中匹配并复用
       const newFiber = updateFromMap(
         existingChildren,
         returnFiber,
