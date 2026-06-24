@@ -16,7 +16,7 @@ const listeningMarker = "_reactListening" + Math.random().toString(36).slice(2);
 export function listenToAllSupportedEvents(rootContainerElement) {
   // 保证只绑定一次
   if (!rootContainerElement[listeningMarker]) {
-    // rootContainerElement[listeningMarker] = true;
+    rootContainerElement[listeningMarker] = true;
     allNativeEvents.forEach((domEventName) => {
       listenToNativeEvent(domEventName, false, rootContainerElement);
       listenToNativeEvent(domEventName, true, rootContainerElement);
