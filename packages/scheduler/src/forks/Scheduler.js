@@ -17,8 +17,12 @@ let taskIdCounter = 1;
 let taskQueue = [];
 let currentTask = null; // 正在执行的任务
 let scheduledHostCallback = null; // 正在调度的任务
+
 const frameInterval = 5;
+
 let startTime = -1;
+
+let isMessageLoopRunning = false; // 当前消息循环是否已启动
 const channel = new MessageChannel();
 let port2 = channel.port2;
 let port1 = channel.port1;
@@ -113,7 +117,10 @@ function workLoop(startTime) {
 function requestHostCallback(workLoop) {
   // 保存任务进度
   scheduledHostCallback = workLoop;
-  schedulePerformWorkUntilDeadline();
+  if (!isMessageLoopRunning) {
+    isMessageLoopRunning = true;
+    schedulePerformWorkUntilDeadline();
+  }
 }
 
 function schedulePerformWorkUntilDeadline() {
@@ -132,9 +139,12 @@ function performWorkUntilDeadline() {
         // 继续调度performWorkUntilDeadline
         schedulePerformWorkUntilDeadline();
       } else {
+        isMessageLoopRunning = false;
         scheduledHostCallback = null;
       }
     }
+  } else {
+    isMessageLoopRunning = false;
   }
 }
 
