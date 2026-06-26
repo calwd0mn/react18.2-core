@@ -39,6 +39,19 @@ const HooksDispatcherOnUpdate = {
   useLayoutEffect: updateLayoutEffect,
 };
 
+function throwInvalidHookError() {
+  throw new Error(
+    "Invalid hook call. Hooks can only be called inside of the body of a function component.",
+  );
+}
+
+const ContextOnlyDispatcher = {
+  useReducer: throwInvalidHookError,
+  useState: throwInvalidHookError,
+  useEffect: throwInvalidHookError,
+  useLayoutEffect: throwInvalidHookError,
+};
+
 function mountWorkInProgressHook() {
   const hook = {
     memoizedState: null, // 存储当前状态
@@ -390,10 +403,13 @@ export function renderWithHooks(
   } else {
     ReactCurrentDispatcher.current = HooksDispatcherOnMount;
   }
-  const children = Component(props);
-  currentlyRenderingFiber = null;
-  workInProgressHook = null;
-  currentHook = null;
-  currentlyRenderingRenderLanes = NoLanes;
-  return children;
+  try {
+    return Component(props);
+  } finally {
+    ReactCurrentDispatcher.current = ContextOnlyDispatcher;
+    currentlyRenderingFiber = null;
+    workInProgressHook = null;
+    currentHook = null;
+    currentlyRenderingRenderLanes = NoLanes;
+  }
 }
