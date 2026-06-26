@@ -71,6 +71,10 @@ export function scheduleCallback(priorityLevel, callback) {
   return newTask;
 }
 
+export function cancelCallback(task) {
+  task.callback = null;
+}
+
 function shouldYieldToHost() {
   const timeElapsed = getCurrentTime() - startTime;
   // 任务执行时间超过5ms就让出控制权
@@ -150,6 +154,7 @@ function performWorkUntilDeadline() {
 
 export {
   scheduleCallback as unstable_scheduleCallback,
+  cancelCallback as unstable_cancelCallback,
   shouldYieldToHost as unstable_shouldYield,
   ImmediatePriority as unstable_ImmediatePriority,
   UserBlockingPriority as unstable_UserBlockingPriority,

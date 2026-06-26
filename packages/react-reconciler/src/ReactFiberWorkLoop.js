@@ -33,6 +33,7 @@ import {
   UserBlockingPriority as UserBlockingSchedulerPriority,
   NormalPriority as NormalSchedulerPriority,
   IdlePriority as IdleSchedulerPriority,
+  cancelCallback,
   scheduleCallback,
   shouldYield,
 } from "./Scheduler";
@@ -76,9 +77,29 @@ function performanceSyncWorkOnRoot(root) {
 }
 
 function ensureRootIsScheduled(root) {
+  const existingCallbackNode = root.callbackNode;
+  const existingCallbackPriority = root.callbackPriority;
   const nextLanes = getNextLanes(root);
-  let newCallbackPriority = getHighestPriorityLane(nextLanes);
-  let newCallbackNode = root.callbackNode;
+
+  if (nextLanes === NoLanes) {
+    if (existingCallbackNode !== null) {
+      cancelCallback(existingCallbackNode);
+    }
+    root.callbackNode = null;
+    root.callbackPriority = NoLane;
+    return;
+  }
+
+  const newCallbackPriority = getHighestPriorityLane(nextLanes);
+  if (existingCallbackPriority === newCallbackPriority) {
+    return;
+  }
+
+  if (existingCallbackNode !== null) {
+    cancelCallback(existingCallbackNode);
+  }
+
+  let newCallbackNode = null;
   if (newCallbackPriority === SyncLane) {
     // 同步任务
     scheduleSyncCallback(performanceSyncWorkOnRoot.bind(null, root));
@@ -106,6 +127,7 @@ function ensureRootIsScheduled(root) {
     );
   }
   root.callbackNode = newCallbackNode;
+  root.callbackPriority = newCallbackPriority;
 }
 
 /**
@@ -116,6 +138,8 @@ function performanceConcurrentWorkOnRoot(root, didTimeout) {
   const originalCallbackNode = root.callbackNode;
   const lanes = getNextLanes(root, NoLanes);
   if (lanes === NoLanes) {
+    root.callbackNode = null;
+    root.callbackPriority = NoLane;
     return null;
   }
   const shouldTimeSlice = !includesBlockingLane(lanes) && !didTimeout;
@@ -134,6 +158,7 @@ function performanceConcurrentWorkOnRoot(root, didTimeout) {
   if (root.callbackNode === originalCallbackNode) {
     return performanceConcurrentWorkOnRoot.bind(null, root);
   }
+  return null;
 }
 
 function renderRootConcurrent(root, renderLanes) {
@@ -181,6 +206,7 @@ function commitRoot(root) {
     }
   }
   root.callbackNode = null;
+  root.callbackPriority = NoLane;
   const subtreeHasEffect =
     (finishedWork.subtreeFlags & MutationMask) !== NoFlags;
   const rootHasEffect = (finishedWork.flags & MutationMask) !== NoFlags;
@@ -194,6 +220,7 @@ function commitRoot(root) {
   }
   root.current = finishedWork;
   commitLayoutEffects(finishedWork, root);
+  ensureRootIsScheduled(root);
 }
 
 function flushPassiveEffect() {
