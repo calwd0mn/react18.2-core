@@ -183,5 +183,9 @@ function processDispatchQueueItemsInOrder(event, listeners, isCapturePhase) {
 
 function executeDispatch(event, listener, currentTarget) {
   event.currentTarget = currentTarget;
-  listener(event);
+  try {
+    listener(event);
+  } finally {
+    event.currentTarget = null;
+  }
 }
