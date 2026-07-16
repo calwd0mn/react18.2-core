@@ -67,7 +67,7 @@ export function scheduleCallback(priorityLevel, callback) {
     sortIndex: expirationTime,
   };
   push(taskQueue, newTask);
-  requestHostCallback(workLoop);
+  requestHostCallback(flushWork);
   return newTask;
 }
 
@@ -118,9 +118,14 @@ function workLoop(startTime) {
   return false;
 }
 
-function requestHostCallback(workLoop) {
+// 对齐原版实现的中间层
+function flushWork(initialTime) {
+  return workLoop(initialTime);
+}
+
+function requestHostCallback(callback) {
   // 保存任务进度
-  scheduledHostCallback = workLoop;
+  scheduledHostCallback = callback;
   if (!isMessageLoopRunning) {
     isMessageLoopRunning = true;
     schedulePerformWorkUntilDeadline();
