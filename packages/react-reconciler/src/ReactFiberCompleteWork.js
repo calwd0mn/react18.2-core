@@ -5,6 +5,7 @@ import {
   FunctionComponent,
 } from "./ReactWorkTags";
 import { NoFlags, Update } from "./ReactFiberFlags";
+import { NoLanes } from "./ReactFiberLane";
 import {
   createInstance,
   appendInitialChild,
@@ -66,6 +67,12 @@ function updateHostText(current, workInProgress, newText) {
   }
 }
 
+/**
+ * 完成当前 Fiber：为宿主节点创建或计算更新，并将副作用标记与子树 lanes 向父节点冒泡。
+ * @param {Fiber | null} current - 已提交的对应 Fiber；首次挂载时为 null。
+ * @param {Fiber} workInProgress - 本轮正在完成的 Fiber。
+ * @returns {void} completed - 当前实现通过修改 workInProgress 完成工作。
+ */
 export function completeWork(current, workInProgress) {
   const newProps = workInProgress.pendingProps;
   switch (workInProgress.tag) {
@@ -106,13 +113,21 @@ export function completeWork(current, workInProgress) {
 
 function bubbleProperties(completedWork) {
   let subtreeFlags = NoFlags;
+  let childLanes = NoLanes;
   let child = completedWork.child;
   while (child !== null) {
+    if (child.return !== completedWork) {
+      childLanes = completedWork.childLanes;
+      break;
+    }
     // |=有1就是1，&=有0就是0
     // 把子节点的flags和subtreeFlags都冒泡到父节点上，这样父节点就可以知道它的子树中有哪些副作用需要处理
     subtreeFlags |= child.subtreeFlags;
     subtreeFlags |= child.flags;
+    childLanes |= child.lanes;
+    childLanes |= child.childLanes;
     child = child.sibling;
   }
   completedWork.subtreeFlags = subtreeFlags;
+  completedWork.childLanes = childLanes;
 }

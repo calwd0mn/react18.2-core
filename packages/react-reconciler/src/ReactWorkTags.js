@@ -4,3 +4,4 @@ export const IndeterminateComponent = 2;// 不确定组件，函数组件和类�
 export const HostRoot = 3;// 表示宿主环境下的根节点=>RootFiber
 export const HostComponent = 5;// 表示宿主环境下的原生组件=>HostComponentFiber 比如div span p等
 export const HostText = 6;// 其他类型还有Fragment、ContextProvider、ContextConsumer等等，这里不一一列举了
+export const MemoComponent = 14;

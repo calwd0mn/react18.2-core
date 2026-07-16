@@ -4,12 +4,23 @@ import {
   HostRoot,
   IndeterminateComponent,
   FunctionComponent,
+  MemoComponent,
 } from "./ReactWorkTags";
 import { mountChildFibers, reconcileChildFibers } from "./ReactChildFiber";
+import { createFiberFromElement, createWorkInProgress } from "./ReactFiber";
 import { processUpdateQueue } from "./ReactFiberClassUpdateQueue";
 import { shouldSetTextContent } from "react-dom-bindings/src/client/ReactDOMHostConfig";
 import { renderWithHooks } from "./ReactFiberHooks.js";
+import { shallowEqual } from "shared/shallowEqual";
+import { bailoutOnAlreadyFinishedWork } from "./ReactFiberBailout";
+import { includesSomeLane } from "./ReactFiberLane";
 
+/**
+ * 根据是否存在 current Fiber，为父 Fiber 挂载或协调子 Fiber。
+ * @param {Fiber | null} current - 当前已提交的父 Fiber；首次挂载时为 null。
+ * @param {Fiber} workInProgress - 正在构建的父 Fiber。
+ * @param {ReactNode} nextChildren - 父 Fiber 本轮渲染产生的新子节点。
+ */
 function reconcileChildren(current, workInProgress, nextChildren) {
   if (current === null) {
     // mount
@@ -91,7 +102,56 @@ function updateFunctionComponent(
   return workInProgress.child;
 }
 
+function updateMemoComponent(
+  current,
+  workInProgress,
+  Component,
+  nextProps,
+  renderLanes,
+) {
+  if (current === null) {
+    const child = createFiberFromElement({
+      type: Component.type,
+      key: null,
+      props: nextProps,
+    });
+    child.return = workInProgress;
+    workInProgress.child = child;
+    return child;
+  }
+
+  const currentChild = current.child;
+  const compare =
+    Component.compare === null ? shallowEqual : Component.compare;
+  if (
+    compare(currentChild.memoizedProps, nextProps)
+  ) {
+    return bailoutOnAlreadyFinishedWork(
+      current,
+      workInProgress,
+      renderLanes,
+    );
+  }
+
+  const child = createWorkInProgress(currentChild, nextProps);
+  child.return = workInProgress;
+  workInProgress.child = child;
+  return child;
+}
+
 export function beginWork(current, workInProgress, renderLanes) {
+  if (
+    current !== null &&
+    current.memoizedProps === workInProgress.pendingProps &&
+    !includesSomeLane(current.lanes, renderLanes)
+  ) {
+    return bailoutOnAlreadyFinishedWork(
+      current,
+      workInProgress,
+      renderLanes,
+    );
+  }
+
   switch (workInProgress.tag) {
     case IndeterminateComponent:
       return mountIndeterminateComponent(
@@ -100,6 +160,7 @@ export function beginWork(current, workInProgress, renderLanes) {
         workInProgress.type,
         renderLanes,
       );
+    // FiberRoot.current
     case HostRoot:
       return updateHostRoot(current, workInProgress, renderLanes);
     case HostComponent:
@@ -115,6 +176,14 @@ export function beginWork(current, workInProgress, renderLanes) {
         renderLanes,
       );
     }
+    case MemoComponent:
+      return updateMemoComponent(
+        current,
+        workInProgress,
+        workInProgress.type,
+        workInProgress.pendingProps,
+        renderLanes,
+      );
     case HostText:
       return null;
     default:

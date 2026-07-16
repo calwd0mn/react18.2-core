@@ -3,6 +3,7 @@ import {
   HostRoot,
   HostText,
   FunctionComponent,
+  MemoComponent,
 } from "./ReactWorkTags";
 import {
   MutationMask,
@@ -193,6 +194,7 @@ export function commitMutationEffectsOnFiber(finishedWork, root) {
   }
   switch (finishedWork.tag) {
     case FunctionComponent:
+    case MemoComponent:
     case HostRoot:
     case HostText: {
       // 递归执行子节点的副作用
@@ -245,7 +247,11 @@ function commitPassiveUnmountOnFiber(root, finishedWork) {
       recursivelyTraversePassiveUnmountEffects(root, finishedWork);
       break;
     case FunctionComponent:
+    case MemoComponent:
       recursivelyTraversePassiveUnmountEffects(root, finishedWork);
+      if (finishedWork.tag === MemoComponent) {
+        break;
+      }
       if (flags & Passive) {
         commitHookPassiveUnmountEffects(
           finishedWork,
@@ -299,7 +305,11 @@ function commitPassiveMountOnFiber(finishedRoot, finishedWork) {
       recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork);
       break;
     case FunctionComponent:
+    case MemoComponent:
       recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork);
+      if (finishedWork.tag === MemoComponent) {
+        break;
+      }
       if (flags & Passive) {
         commitHookPassiveMountEffects(
           finishedWork,
@@ -355,7 +365,11 @@ function commitLayoutEffectsOnFiber(finishedRoot, current, finishedWork) {
       recursivelyTraverseLayoutEffects(finishedRoot, finishedWork);
       break;
     case FunctionComponent:
+    case MemoComponent:
       recursivelyTraverseLayoutEffects(finishedRoot, finishedWork);
+      if (finishedWork.tag === MemoComponent) {
+        break;
+      }
       if (flags & LayoutMask) {
         commitHookLayoutEffects(finishedWork, HookHasEffect | HookLayout);
       }
