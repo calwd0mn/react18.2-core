@@ -90,6 +90,13 @@ function mountEffect(create, deps) {
   return mountEffectImpl(PassiveEffect, HookPassive, create, deps);
 }
 
+/**
+ * 挂载副作用 Hook：创建 Effect，标记当前 Fiber，并将 Effect 加入函数组件的副作用链表。
+ * @param {number} fiberFlags - Fiber 上用于标记副作用类型的 flags。
+ * @param {number} hookFlags - Effect 上用于标记 Hook 类型的 flags。
+ * @param {() => void | (() => void)} create - 副作用创建函数，可返回清理函数。
+ * @param {Array | undefined} deps - 副作用依赖数组；省略时每次更新都执行。
+ */
 function mountEffectImpl(fiberFlags, hookFlags, create, deps) {
   const hook = mountWorkInProgressHook();
   const nextDeps = deps === undefined ? null : deps;
@@ -97,14 +104,19 @@ function mountEffectImpl(fiberFlags, hookFlags, create, deps) {
   hook.memoizedState = pushEffect(
     HookHasEffect | hookFlags,
     create,
-    undefined,
+    undefined,// 挂载阶段还没有
     nextDeps,
   );
-  hook.queue = {
-    tag: hookFlags,
-  };
 }
 
+/**
+ * 创建 Effect 并将其加入当前函数组件的副作用环形链表(Fiber.updateQueue)。
+ * @param {number} tag - Effect 的类型和执行标记。
+ * @param {() => void | (() => void)} create - Effect 创建函数，可返回清理函数。
+ * @param {(() => void) | undefined} destroy - 上一次 Effect 的清理函数。
+ * @param {Array | null} deps - Effect 的依赖数组。
+ * @returns {object} effect - 创建并加入链表的 Effect。
+ */
 function pushEffect(tag, create, destroy, deps) {
   const effect = {
     tag,
@@ -338,6 +350,14 @@ function updateReducer(reducer) {
   return [hook.memoizedState, queue.dispatch];
 }
 
+
+
+/**
+ * 更新阶段按 Hook 的调用顺序读取 current Fiber 上的旧 Hook，
+ * 克隆出新的 Hook 节点并连接到 work-in-progress Fiber 的 Hook 链表中。
+ *
+ * @returns {Hook} 当前正在处理的 work-in-progress Hook。
+ */
 function updateWorkInProgressHook() {
   // 按 hook 调用顺序，从 current fiber 的老 hook 链表中取出当前 hook节点
   if (currentHook === null) {
