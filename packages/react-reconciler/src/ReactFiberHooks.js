@@ -31,6 +31,7 @@ const HooksDispatcherOnMount = {
   useState: mountState,
   useRef: mountRef,
   useMemo: mountMemo,
+  useCallback: mountCallback,
   useEffect: mountEffect,
   useLayoutEffect: mountLayoutEffect,
 };
@@ -39,6 +40,7 @@ const HooksDispatcherOnUpdate = {
   useState: updateState,
   useRef: updateRef,
   useMemo: updateMemo,
+  useCallback: updateCallback,
   useEffect: updateEffect,
   useLayoutEffect: updateLayoutEffect,
 };
@@ -54,6 +56,7 @@ const ContextOnlyDispatcher = {
   useState: throwInvalidHookError,
   useRef: throwInvalidHookError,
   useMemo: throwInvalidHookError,
+  useCallback: throwInvalidHookError,
   useEffect: throwInvalidHookError,
   useLayoutEffect: throwInvalidHookError,
 };
@@ -221,6 +224,27 @@ function updateMemo(create, deps) {
   const nextValue = create();
   hook.memoizedState = [nextValue, nextDeps];
   return nextValue;
+}
+
+function mountCallback(callback, deps) {
+  const hook = mountWorkInProgressHook();
+  const nextDeps = deps === undefined ? null : deps;
+  hook.memoizedState = [callback, nextDeps];
+  return callback;
+}
+
+function updateCallback(callback, deps) {
+  const hook = updateWorkInProgressHook();
+  const nextDeps = deps === undefined ? null : deps;
+  const prevState = hook.memoizedState;
+  if (
+    nextDeps !== null &&
+    areHookInputsEqual(nextDeps, prevState[1])
+  ) {
+    return prevState[0];
+  }
+  hook.memoizedState = [callback, nextDeps];
+  return callback;
 }
 
 function dispatchSetStateAction(fiber, queue, action) {

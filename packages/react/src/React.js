@@ -1,4 +1,4 @@
-import { useReducer, useState, useRef, useMemo, useEffect, useLayoutEffect } from "./ReactHooks";
+import { useReducer, useState, useRef, useMemo, useCallback, useEffect, useLayoutEffect } from "./ReactHooks";
 import ReactSharedInternals from "./ReactSharedInternals";
 import { memo } from "./ReactMemo";
 export {
@@ -6,6 +6,7 @@ export {
   useState,
   useRef,
   useMemo,
+  useCallback,
   useEffect,
   useLayoutEffect,
   memo,

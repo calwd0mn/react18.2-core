@@ -24,6 +24,11 @@ export function useMemo(create, deps) {
   return dispatcher.useMemo(create, deps);
 }
 
+export function useCallback(callback, deps) {
+  const dispatcher = resolveDispatcher();
+  return dispatcher.useCallback(callback, deps);
+}
+
 export function useEffect(create, deps){
   const dispatcher = resolveDispatcher();
   return dispatcher.useEffect(create,deps);

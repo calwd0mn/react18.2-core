@@ -3,6 +3,7 @@ export {
   useState,
   useRef,
   useMemo,
+  useCallback,
   useEffect,
   useLayoutEffect,
   memo,
