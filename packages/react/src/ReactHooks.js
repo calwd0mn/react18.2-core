@@ -19,6 +19,11 @@ export function useRef(initialValue) {
   return dispatcher.useRef(initialValue);
 }
 
+export function useMemo(create, deps) {
+  const dispatcher = resolveDispatcher();
+  return dispatcher.useMemo(create, deps);
+}
+
 export function useEffect(create, deps){
   const dispatcher = resolveDispatcher();
   return dispatcher.useEffect(create,deps);

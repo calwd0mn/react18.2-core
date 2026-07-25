@@ -30,6 +30,7 @@ const HooksDispatcherOnMount = {
   useReducer: mountReducer,
   useState: mountState,
   useRef: mountRef,
+  useMemo: mountMemo,
   useEffect: mountEffect,
   useLayoutEffect: mountLayoutEffect,
 };
@@ -37,6 +38,7 @@ const HooksDispatcherOnUpdate = {
   useReducer: updateReducer,
   useState: updateState,
   useRef: updateRef,
+  useMemo: updateMemo,
   useEffect: updateEffect,
   useLayoutEffect: updateLayoutEffect,
 };
@@ -51,10 +53,19 @@ const ContextOnlyDispatcher = {
   useReducer: throwInvalidHookError,
   useState: throwInvalidHookError,
   useRef: throwInvalidHookError,
+  useMemo: throwInvalidHookError,
   useEffect: throwInvalidHookError,
   useLayoutEffect: throwInvalidHookError,
 };
 
+/**
+ * 为挂载阶段分配 Hook 节点，并将其追加到当前 Fiber 的 Hook 链表。
+ *
+ * Hook 依赖调用顺序关联状态，因此必须在创建时同步维护链表尾节点，
+ * 才能让更新阶段按相同顺序读取对应的旧 Hook。
+ *
+ * @returns {Hook} 当前创建的 work-in-progress Hook。
+ */
 function mountWorkInProgressHook() {
   const hook = {
     memoizedState: null, // 存储当前状态
@@ -187,6 +198,29 @@ function mountRef(initialValue) {
 function updateRef() {
   const hook = updateWorkInProgressHook();
   return hook.memoizedState;
+}
+
+function mountMemo(create, deps) {
+  const hook = mountWorkInProgressHook();
+  const nextDeps = deps === undefined ? null : deps;
+  const nextValue = create();
+  hook.memoizedState = [nextValue, nextDeps];
+  return nextValue;
+}
+
+function updateMemo(create, deps) {
+  const hook = updateWorkInProgressHook();
+  const nextDeps = deps === undefined ? null : deps;
+  const prevState = hook.memoizedState;
+  if (
+    nextDeps !== null &&
+    areHookInputsEqual(nextDeps, prevState[1])
+  ) {
+    return prevState[0];
+  }
+  const nextValue = create();
+  hook.memoizedState = [nextValue, nextDeps];
+  return nextValue;
 }
 
 function dispatchSetStateAction(fiber, queue, action) {

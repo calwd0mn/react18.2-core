@@ -2,6 +2,7 @@ export {
   useReducer,
   useState,
   useRef,
+  useMemo,
   useEffect,
   useLayoutEffect,
   memo,
