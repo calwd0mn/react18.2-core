@@ -29,12 +29,14 @@ let currentlyRenderingRenderLanes = NoLanes;
 const HooksDispatcherOnMount = {
   useReducer: mountReducer,
   useState: mountState,
+  useRef: mountRef,
   useEffect: mountEffect,
   useLayoutEffect: mountLayoutEffect,
 };
 const HooksDispatcherOnUpdate = {
   useReducer: updateReducer,
   useState: updateState,
+  useRef: updateRef,
   useEffect: updateEffect,
   useLayoutEffect: updateLayoutEffect,
 };
@@ -48,6 +50,7 @@ function throwInvalidHookError() {
 const ContextOnlyDispatcher = {
   useReducer: throwInvalidHookError,
   useState: throwInvalidHookError,
+  useRef: throwInvalidHookError,
   useEffect: throwInvalidHookError,
   useLayoutEffect: throwInvalidHookError,
 };
@@ -172,6 +175,18 @@ function mountState(initialState) {
   );
   queue.dispatch = dispatch;
   return [hook.memoizedState, dispatch];
+}
+
+function mountRef(initialValue) {
+  const hook = mountWorkInProgressHook();
+  const ref = { current: initialValue };
+  hook.memoizedState = ref;
+  return ref;
+}
+
+function updateRef() {
+  const hook = updateWorkInProgressHook();
+  return hook.memoizedState;
 }
 
 function dispatchSetStateAction(fiber, queue, action) {

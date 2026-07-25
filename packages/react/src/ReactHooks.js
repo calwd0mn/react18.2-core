@@ -14,6 +14,11 @@ export function useState(initialState) {
   return dispatcher.useState(initialState);
 }
 
+export function useRef(initialValue) {
+  const dispatcher = resolveDispatcher();
+  return dispatcher.useRef(initialValue);
+}
+
 export function useEffect(create, deps){
   const dispatcher = resolveDispatcher();
   return dispatcher.useEffect(create,deps);
